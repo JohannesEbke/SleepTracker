@@ -23,11 +23,11 @@ if __name__=="__main__":
     t, x, y, z = np.loadtxt(args.file).T
 
     # get global normalization
-    g = np.sqrt(x**2 + y**2 + z**2)
-    med_g = np.median(g)
-    x/=med_g
-    y/=med_g
-    z/=med_g
+    #g = np.sqrt(x**2 + y**2 + z**2)
+    #med_g = np.median(g)
+    #x/=med_g
+    #y/=med_g
+    #z/=med_g
 
     n, timestamps = 0, [t0 + t[0]] # datetime.timedelta(milliseconds=t[0])]
     for i in xrange(1, t.size):
