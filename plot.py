@@ -76,10 +76,10 @@ def get_angular_change(x, y, z):
 def get_spectrogram(x, width, skip):
     lines = []
     for i in xrange((len(x) - width)/skip):
-        print i, "/", (len(x) - width)/skip
+        #print i, "/", (len(x) - width)/skip
         ft = fftp.rfft(x[i*skip:i*skip+width])[1:]
-        #lines.append(abs(ft))
-        lines.append(ft**2)
+        lines.append(abs(ft))
+        #lines.append(ft**2)
         #lines.append(np.array(map(complex_to_rgb, ft)))
     res = np.array(lines)
     res = np.swapaxes(res, 0, 1)
@@ -125,10 +125,11 @@ if __name__=="__main__":
     # time is in milliseconds
     t, x, y, z = cPickle.load(file(args.file))
 
-    if False:
+    if True:
         print len(t)
         #start, end = (0,-400000)
-        start, end = (0,40*(3600))
+        #start, end = (40*60*5, 40*(3600))
+        start, end = (40*60*5, -1)
         t = t[start:end]
         x = x[start:end]
         y = y[start:end]
@@ -146,10 +147,9 @@ if __name__=="__main__":
     dz = z[1:] - z[:-1]
     #t = t[1:]
     g = np.sqrt(x**2 + y**2 + z**2)
-    if False:
-        dg = np.sqrt(dx**2 + dy**2 + dz**2)
 
-        
+    if False:
+        dg = np.sqrt(dx**2 + dy**2 + dz**2)    
         #figure = pyplot.figure(figsize=(10, 3))
 
         window1s, windows10s = int(avg_per_sec), 10*int(avg_per_sec)
@@ -169,24 +169,21 @@ if __name__=="__main__":
         #plot_avg_win(10*int(avg_per_sec))
 
 
-        trig = Trigger()
-        ts, td, trigs = [], [], []
-        for i in xrange(len(t)):
-            trig.tick(x[i],y[i],z[i])
-            ts.append(trig.sigma)
-            td.append(trig.moving_mean_square/500.0)
-            trigs.append(trig.dv if trig.sigma > 3 else 0)
+    trig = Trigger()
+    ts, td, trigs = [], [], []
+    for i in xrange(len(t)):
+        trig.tick(x[i],y[i],z[i])
+        ts.append(trig.sigma)
+        td.append(trig.moving_mean_square/500.0)
+        trigs.append(trig.dv if trig.sigma > 3 else 0)
 
-        pyplot.plot(t, ts, label='Trigger Sigma')
-        pyplot.plot(t, td, label='Trigger Moving Mean Square')
-        pyplot.plot(t, trigs, label='Triggers')
 
-        print "Sigma Counts: "
-        xv = sum(trig.counter.values())
-        cum = 0
-        for sigma in sorted(trig.counter):
-            cum += trig.counter[sigma]
-            print sigma+1, trig.counter[sigma], cum*100.0/xv
+    print "Sigma Counts: "
+    xv = sum(trig.counter.values())
+    cum = 0
+    for sigma in sorted(trig.counter):
+        cum += trig.counter[sigma]
+        print sigma+1, trig.counter[sigma], cum*100.0/xv
 
     #pyplot.plot(t[1:], dg, label='Delta G')
     #g_fft = sp.fft(dg)
@@ -209,27 +206,35 @@ if __name__=="__main__":
     #pyplot.show()
     #pyplot.close(figure)
 
-    figure = pyplot.figure(figsize=(10, 3))
-    sfig = figure.add_subplot(111)
 
-    fft_width = 40*10 # 10 sec should be enough to catch all regular human rythms
-    fft_skip = 40*10 # only one per second
-    g = g[40*60*5:]
+    fft_width = 40*5 # 10 sec should be enough to catch all regular human rythms
+    fft_skip = fft_width # only one per second
     sg = get_spectrogram(g, fft_width, fft_skip)
     #print sg
     def xv_to_time(x, pos):
         return "%.2f" % (x*fft_skip/40.0)
-
     def yv_to_freq(y, pos):
         return "%.1f Hz" % (y/(fft_width/40.0))
 
-    sfig.imshow(sg, aspect="auto", cmap=cm.hot)
-    sfig.set_ylabel("Frequency")
-    sfig.set_xlabel("Time")
-    sfig.get_xaxis().set_major_formatter(ticker.FuncFormatter(xv_to_time))
-    sfig.get_yaxis().set_major_formatter(ticker.FuncFormatter(yv_to_freq))
+    figure = pyplot.figure(figsize=(10, 3))
+    sfig1 = figure.add_subplot(211)
+    sfig1.imshow(sg, aspect="auto", cmap=cm.hot)
+    sfig1.set_ylabel("Frequency")
+    sfig1.set_xlabel("Time")
+    sfig1.get_xaxis().set_major_formatter(ticker.FuncFormatter(xv_to_time))
+    sfig1.get_yaxis().set_major_formatter(ticker.FuncFormatter(yv_to_freq))
 
+
+    sfig2 = figure.add_subplot(212, sharex=sfig1)
+    timeax = np.linspace(0,len(sg[0]), len(ts))
+    sfig2.plot(timeax, ts, label='Trigger Sigma')
+    #sfig2.plot(timeax, td, label='Trigger Moving Mean Square')
+    sfig2.plot(timeax, trigs, label='Triggers')
+    sfig2.get_xaxis().set_major_formatter(ticker.FuncFormatter(xv_to_time))
+
+
+
+    figure.subplots_adjust(left=0.05, bottom=0.05, right=0.99, top=0.99, wspace=0.0, hspace=0.0)
     figure.savefig(args.file + '.png', dpi=150, bbox_inches='tight')
-    pyplot.tight_layout()
     pyplot.show()
     pyplot.close(figure)
