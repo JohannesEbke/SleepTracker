@@ -3,9 +3,10 @@
 # -*- coding: utf-8 -*-
 
 import datetime
-import numpy as np
 import sys
 import cPickle
+import numpy as np
+from scipy import signal, interpolate
 
 if __name__=="__main__":
     import argparse
@@ -38,6 +39,14 @@ if __name__=="__main__":
         timestamps.append(t0 + dt)
 
     timestamps = np.array(timestamps)
-    results = (timestamps, x, y, z)
+    t0, t1 = timestamps[0], timestamps[-1]
+    new_t = np.linspace(t0, t1, (t1-t0)/25)
+    typ = "nearest"
+    new_x = interpolate.interp1d(timestamps, x, typ)(new_t)
+    new_y = interpolate.interp1d(timestamps, y, typ)(new_t)
+    new_z = interpolate.interp1d(timestamps, z, typ)(new_t)
+
+    #results = (timestamps, x, y, z)
+    results = (new_t, new_x, new_y, new_z)
     cPickle.dump(results, file(args.file+".pickle", "w"), 2)
     
